@@ -11,8 +11,8 @@ DEVICE = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 LIMIT = 200
 
 # Load the model
-model = models.vgg16(weights=models.VGG16_Weights.IMAGENET1K_V1)
-# model = models.vgg19(weights=models.VGG19_Weights.IMAGENET1K_V1)
+# model = models.vgg16(weights=models.VGG16_Weights.IMAGENET1K_V1)
+model = models.vgg19(weights=models.VGG19_Weights.IMAGENET1K_V1)
 
 model.to(DEVICE)
 model.eval()
@@ -83,7 +83,9 @@ def visualize_feature_maps(img_path, layer_name, channel_index=None, view_all=Tr
     if view_all:
         # Set fixed number of columns to 5
         original_n_channels = n_channels
-        if n_channels - channel_offset > LIMIT:
+        if channel_offset > n_channels:
+            channel_offset = 0
+        elif n_channels - channel_offset > LIMIT:
             n_channels = LIMIT
         else:
             n_channels = n_channels - channel_offset
