@@ -73,6 +73,20 @@ def get_feature_maps(img_path, layer_name):
     
     return feature_maps, original_img
 
+def compute_gram_matrix(feature_maps):
+    """Compute the Gram matrix for the given feature maps."""
+    # Reshape feature maps
+    n_channels, height, width = feature_maps.shape
+    reshaped_maps = feature_maps.reshape(n_channels, height * width)
+    
+    # Compute Gram matrix (correlation between feature maps)
+    gram_matrix = np.matmul(reshaped_maps, reshaped_maps.T)
+    
+    # Normalize by the number of elements
+    gram_matrix = gram_matrix / (height * width)
+    
+    return gram_matrix
+
 def visualize_feature_maps(img_path, layer_name, channel_index=None, view_all=True, channel_offset=0):
     """Visualize feature maps from a layer."""
     feature_maps, original_img = get_feature_maps(img_path, layer_name)
@@ -142,6 +156,30 @@ def visualize_feature_maps(img_path, layer_name, channel_index=None, view_all=Tr
     plt.tight_layout(rect=[0, 0, 1, 0.97])  # Adjust for the figure title
     return fig, n_channels
 
+def visualize_gram_matrix(img_path, layer_name, max_channels=None):
+    """Visualize the Gram matrix for the selected layer."""
+    feature_maps, _ = get_feature_maps(img_path, layer_name)
+    
+    # Limit the number of channels for visualization if specified
+    if max_channels is not None and max_channels > 0 and max_channels < feature_maps.shape[0]:
+        feature_maps = feature_maps[:max_channels]
+    
+    # Compute the Gram matrix
+    gram_matrix = compute_gram_matrix(feature_maps)
+    
+    # Create a figure
+    fig, ax = plt.subplots(1, 1, figsize=(10, 10))
+    
+    # Display the Gram matrix
+    gram_matrix_img = ax.imshow(gram_matrix, cmap='viridis')
+    ax.set_title(f'Gram Matrix for Layer: {layer_name}\nSize: {gram_matrix.shape[0]}×{gram_matrix.shape[1]}')
+    
+    # Add colorbar
+    plt.colorbar(gram_matrix_img, ax=ax, orientation='vertical', fraction=0.046, pad=0.04)
+    
+    plt.tight_layout()
+    return fig, gram_matrix.shape[0]
+
 def update_channel_slider(layer_name, img_path):
     """Update channel slider maximum based on selected layer."""
     if img_path is None:
@@ -151,6 +189,16 @@ def update_channel_slider(layer_name, img_path):
     n_channels = feature_maps.shape[0]
     return gr.update(maximum=n_channels-1, value=0)
 
+def update_max_channels_slider(layer_name, img_path):
+    """Update max channels slider based on selected layer."""
+    if img_path is None:
+        return gr.update(maximum=100, value=16)
+    
+    feature_maps, _ = get_feature_maps(img_path, layer_name)
+    n_channels = feature_maps.shape[0]
+    default_value = min(16, n_channels)  # Default to 50 or the max number of channels
+    return gr.update(maximum=n_channels, value=default_value)
+
 def visualize_all(img_path, layer_name, channel_offset):
     """Visualize all channels in a layer."""
     fig, _ = visualize_feature_maps(img_path, layer_name, view_all=True, channel_offset=channel_offset)
@@ -159,6 +207,11 @@ def visualize_all(img_path, layer_name, channel_offset):
 def visualize_single(img_path, layer_name, channel_index):
     """Visualize a single channel in a layer."""
     fig, _ = visualize_feature_maps(img_path, layer_name, channel_index, view_all=False)
+    return fig
+
+def visualize_gram(img_path, layer_name, max_channels):
+    """Visualize the Gram matrix for a layer."""
+    fig, _ = visualize_gram_matrix(img_path, layer_name, max_channels)
     return fig
 
 # Create Gradio Interface
@@ -216,8 +269,41 @@ with gr.Blocks(title="VGG Feature Map Visualizer (PyTorch)") as app:
             inputs=[input_image2, layer_dropdown2, channel_slider],
             outputs=[output_plot2]
         )
+    
+    with gr.Tab("Gram Matrix View"):
+        with gr.Row():
+            with gr.Column(scale=1):
+                # Input controls
+                input_image3 = gr.Image(type="filepath", label="Input Image")
+                layer_dropdown3 = gr.Dropdown(choices=layer_names, label="Select Layer", value=layer_names[1])
+                max_channels_slider = gr.Slider(minimum=10, maximum=100, step=10, label="Max Channels", value=16)
+                visualize_button3 = gr.Button("Visualize Gram Matrix")
+            
+            with gr.Column(scale=2):
+                # Output visualization
+                output_plot3 = gr.Plot(label="Gram Matrix Visualization")
+        
+        # Update max channels slider when layer changes
+        layer_dropdown3.change(
+            fn=update_max_channels_slider,
+            inputs=[layer_dropdown3, input_image3],
+            outputs=[max_channels_slider]
+        )
+        
+        # Update max channels slider when image changes
+        input_image3.change(
+            fn=update_max_channels_slider,
+            inputs=[layer_dropdown3, input_image3],
+            outputs=[max_channels_slider]
+        )
+        
+        # Visualize the Gram matrix
+        visualize_button3.click(
+            fn=visualize_gram,
+            inputs=[input_image3, layer_dropdown3, max_channels_slider],
+            outputs=[output_plot3]
+        )
 
 # Launch the app
 if __name__ == "__main__":
     app.launch(server_name="0.0.0.0", server_port=7860)
-    
