@@ -84,7 +84,7 @@ def visualize_feature_maps(img_path, layer_name, channel_index=None, view_all=Tr
         # Set fixed number of columns to 5
         original_n_channels = n_channels
         if n_channels - channel_offset > LIMIT:
-            n_channels = channel_offset + LIMIT
+            n_channels = LIMIT
         else:
             n_channels = n_channels - channel_offset
 
