@@ -11,8 +11,8 @@ DEVICE = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 LIMIT = 200
 
 # Load the model
-# model = models.vgg16(weights=models.VGG16_Weights.IMAGENET1K_V1)
-model = models.vgg19(weights=models.VGG19_Weights.IMAGENET1K_V1)
+model = models.vgg16(weights=models.VGG16_Weights.IMAGENET1K_V1)
+# model = models.vgg19(weights=models.VGG19_Weights.IMAGENET1K_V1)
 
 model.to(DEVICE)
 model.eval()
