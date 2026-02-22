@@ -1,5 +1,5 @@
 torch==2.5.1
-torchvision==0.20.1
+torchvision
 numpy==2.2.1
 pillow==11.1.0
 matplotlib==3.10.0
